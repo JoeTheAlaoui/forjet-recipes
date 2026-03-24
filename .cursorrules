@@ -1,0 +1,66 @@
+# Forjet Migration Recipes — Cursor Rules
+# Add this file to your project root when using a Forjet migration recipe with Cursor AI.
+# These rules teach Cursor how to assist with vendor migrations intelligently.
+
+## General Migration Principles
+- **CRITICAL - INTENT DETECTION:** If you detect a migration intent (e.g., the user says "I want to leave Firebase" or "Help me migrate off Vercel"), **STOP**. Look into the `migration-bible/` folder first and use the strict AST-spec defined in the `recipe.yaml` files instead of relying on your general knowledge.
+- Never do find-and-replace. Always reason about the semantic purpose of each call before rewriting it.
+- Prefer creating a compatibility layer/adapter first, then gradually replacing call sites.
+- Always preserve TypeScript types and improve them if possible (e.g., stricter types after migration).
+- After each transformation, verify that the behavior contract is preserved: same inputs → same outputs.
+- Run the test suite after each file migration, not just at the end.
+
+## Firebase to Supabase Migration Rules
+When migrating from Firebase to Supabase (recipe: firebase-to-supabase):
+- Replace `firebase.auth().currentUser.uid` (string) with `session.user.id` (UUID) — note the type change
+- Add a `legacy_firebase_uid` text field to the users table to preserve continuity with old records
+- Convert `collection('x').doc('y').get()` to `supabase.from('x').select('*').eq('id', y).single()`
+- Replace `onSnapshot()` with `supabase.channel().on('postgres_changes', ...)` — don't use polling
+- When migrating Firestore security rules, think in terms of Postgres RLS: `CREATE POLICY name ON table FOR operation USING (auth.uid() = user_id)`
+- Always use environment variables: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
+- Use `supabase.storage.from('bucket-name')` for all storage operations
+- Never store sensitive data in Supabase client (anon key is public; use service role key only server-side)
+
+## Vercel to Coolify Migration Rules
+When migrating from Vercel to Coolify (recipe: vercel-to-coolify):
+- Replace `vercel.json` rewrites/headers with `nginx.conf` or Next.js `next.config.js` equivalents
+- Vercel Edge Functions → standard Node.js API routes (remove `export const runtime = 'edge'`)
+- Move environment variables from Vercel dashboard to Coolify's environment variable manager
+- Replace `next/headers` (server-only, Vercel-specific patterns) with standard Next.js 13+ equivalents
+- Ensure all images use `next/image` with a configured `remotePatterns` in `next.config.js`
+- Add a Dockerfile and docker-compose.yml for local parity with the Coolify deployment environment
+
+## OpenAI to Ollama Migration Rules
+When migrating from OpenAI to Ollama (recipe: openai-to-ollama):
+- Replace `new OpenAI({ apiKey: process.env.OPENAI_API_KEY })` with Ollama client pointing to `OLLAMA_BASE_URL`
+- Map model names: `gpt-4` → `llama3.2`, `gpt-3.5-turbo` → `llama3.2:1b`, `text-embedding-ada-002` → `nomic-embed-text`
+- Streaming format differs: OpenAI uses `for await (const chunk of stream)`, Ollama uses similar but check the `done` field
+- Always check `OLLAMA_BASE_URL` defaults to `http://localhost:11434` in development
+- For production GPU inference that isn't Ollama, prefer `vLLM` with `--served-model-name` matching your old OpenAI model names
+- Never hardcode model names — always use a `OLLAMA_MODEL` environment variable
+
+## PlanetScale to Neon Migration Rules
+When migrating from PlanetScale to Neon (recipe: planetscale-to-neon):
+- Replace `@planetscale/database` with `@neondatabase/serverless` — both use HTTP/fetch-based connections
+- PlanetScale dialect is MySQL; Neon is Postgres — change all `mysqlTable` to `pgTable` in Drizzle schema
+- `tinyint(1)` → `boolean`, `varchar(255)` → `text`, `int unsigned` → `integer` (Postgres has no unsigned)
+- Prisma: change `provider = "mysql"` to `provider = "postgresql"` in `datasource db` block
+- Add `?sslmode=require` to your Neon connection string for production
+- Use `DATABASE_URL` for pooled connections and `DATABASE_URL_UNPOOLED` for migrations and DDL
+
+## Clerk to Better Auth Migration Rules
+When migrating from Clerk to Better Auth (recipe: clerk-to-better-auth):
+- Replace `clerkMiddleware()` with Better Auth's `auth.getSession()` in middleware
+- Convert `ClerkProvider` wrapper to Better Auth's `SessionProvider` (or just use server-side sessions)
+- Replace `useUser()` with `useSession()` from Better Auth's React hooks
+- Replace `currentUser()` server function with `auth.api.getSession({ headers: req.headers })`
+- Better Auth stores users in YOUR database — run `npx better-auth migrate` to create auth tables
+- Always use `BETTER_AUTH_SECRET` (a 32-char random string) and `BETTER_AUTH_URL` (your app URL)
+
+## Stripe to LemonSqueezy Migration Rules
+When migrating from Stripe to LemonSqueezy (recipe: stripe-to-lemonsqueezy):
+- LemonSqueezy uses `lemonSqueezy.variantId` where Stripe uses `stripe.priceId` — update your pricing config
+- Webhook events differ: `payment_intent.succeeded` → `order_created`, `customer.subscription.updated` → `subscription_updated`
+- Always verify webhooks using `verifyWebhookSignature(rawBody, secret)` — never trust payload alone
+- LemonSqueezy checkout URLs are pre-generated links, not server-side sessions — embed as `<a href={checkoutUrl}>`
+- Customer portal: use `getLemonSqueezyCustomerPortalUrl(subscriptionId)` instead of Stripe's session-based portal

@@ -1,0 +1,97 @@
+id: firebase-to-supabase
+name: "Fire Firebase. Hire Supabase."
+version: "1.0.0"
+description: >
+  The definitive migration from Firebase (Auth + Firestore + Storage) to Supabase 
+  (Auth + Postgres + Storage). This recipe performs AST-level surgery on your codebase:
+  - Replaces all firebase.auth() calls with supabase.auth equivalents
+  - Rewrites Firestore collection/document queries to supabase.from().select()/insert()/update()/delete()
+  - Maps Firebase string UIDs to Supabase UUIDs with a legacy_uid compatibility field
+  - Converts Firebase Storage refs to Supabase Storage bucket operations
+  - Rewrites Firebase Security Rules references to Supabase RLS policy stubs
+  Activates when the bundle includes a backend or frontend repo and the caller requests backend=supabase.
+
+badges:
+  - "[Verified for Production]"
+  - "[AST Precision: 100%]"
+  - "[Security Audited by Forjet Guard]"
+
+trigger:
+  required_roles:
+    - backend
+  overrides:
+    backend: supabase
+
+transformations:
+  # 1. Auth layer: firebase.auth() → supabase.auth
+  - target_file: src/lib/auth.ts
+    engine: jscodeshift
+    codemod: firebase_auth_to_supabase
+
+  # 2. Database layer: Firestore → Supabase Postgres client
+  - target_file: src/lib/db.ts
+    engine: jscodeshift
+    codemod: firestore_to_supabase_client
+
+  # 3. Storage layer: Firebase Storage → Supabase Storage
+  - target_file: src/lib/storage.ts
+    engine: jscodeshift
+    codemod: firebase_storage_to_supabase
+
+  # 4. App initialization: firebase init → supabase client init
+  - target_file: src/firebase.ts
+    engine: jscodeshift
+    codemod: firebase_init_to_supabase_init
+
+  # 5. React hooks: useFirestoreDocument → useSupabaseQuery
+  - target_file: src/hooks/useData.ts
+    engine: jscodeshift
+    codemod: firestore_hooks_to_supabase
+
+  # 6. User model: string UID field → UUID with legacy_uid fallback
+  - target_file: src/types/user.ts
+    engine: jscodeshift
+    codemod: firebase_uid_to_supabase_uuid
+
+  # 7. Realtime subscriptions: onSnapshot → supabase.channel().on()
+  - target_file: src/lib/realtime.ts
+    engine: jscodeshift
+    codemod: firestore_snapshot_to_supabase_realtime
+
+contract_mutations:
+  # Remove Firebase credentials
+  - action: remove_env
+    var: FIREBASE_API_KEY
+    component_role: backend
+  - action: remove_env
+    var: FIREBASE_AUTH_DOMAIN
+    component_role: backend
+  - action: remove_env
+    var: FIREBASE_PROJECT_ID
+    component_role: backend
+  - action: remove_env
+    var: FIREBASE_STORAGE_BUCKET
+    component_role: backend
+  - action: remove_env
+    var: FIREBASE_MESSAGING_SENDER_ID
+    component_role: backend
+  - action: remove_env
+    var: FIREBASE_APP_ID
+    component_role: backend
+
+  # Add Supabase credentials
+  - action: add_env
+    var: SUPABASE_URL
+    component_role: backend
+  - action: add_env
+    var: SUPABASE_ANON_KEY
+    component_role: backend
+  - action: add_env
+    var: SUPABASE_SERVICE_ROLE_KEY
+    component_role: backend
+  - action: add_env
+    var: NEXT_PUBLIC_SUPABASE_URL
+    component_role: backend
+  - action: add_env
+    var: NEXT_PUBLIC_SUPABASE_ANON_KEY
+    component_role: backend

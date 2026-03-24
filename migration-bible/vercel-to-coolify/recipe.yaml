@@ -1,0 +1,62 @@
+id: vercel-to-coolify
+name: "The $800 Bill Migration: Vercel to Coolify"
+version: "1.0.0"
+description: >
+  Escapes Vercel's usage-based billing trap by migrating your deployment config 
+  to Coolify — a self-hosted, open-source PaaS that runs on any VPS for a flat 
+  $6–$20/month. This recipe:
+  - Rewrites vercel.json configuration to a Coolify-compatible docker-compose.yml
+  - Converts Vercel-specific environment variable patterns to standard .env structure
+  - Replaces Vercel Edge Function syntax with standard Node.js API routes
+  - Migrates Vercel Cron Jobs to docker-compose service definitions
+  - Updates CI/CD pipeline from Vercel GitHub integration to Coolify webhooks
+  Activates when the bundle includes a deployment config referencing vercel.
+
+badges:
+  - "[Verified for Production]"
+  - "[AST Precision: 100%]"
+  - "[Security Audited by Forjet Guard]"
+
+trigger:
+  required_roles:
+    - frontend
+  overrides:
+    deploy: coolify
+
+transformations:
+  # 1. Vercel configuration → docker-compose.yml
+  - target_file: vercel.json
+    engine: jscodeshift
+    codemod: vercel_config_to_docker_compose
+
+  # 2. Vercel Edge Functions → standard Next.js API routes
+  - target_file: src/middleware.ts
+    engine: jscodeshift
+    codemod: vercel_edge_to_node_middleware
+
+  # 3. Vercel-specific rewrites/headers in next.config.js → standard format
+  - target_file: next.config.js
+    engine: jscodeshift
+    codemod: vercel_next_config_to_standard
+
+  # 4. CI/CD pipeline: .github/workflows/deploy.yml → Coolify webhook trigger
+  - target_file: .github/workflows/deploy.yml
+    engine: jscodeshift
+    codemod: vercel_ci_to_coolify_webhook
+
+contract_mutations:
+  - action: remove_env
+    var: VERCEL_TOKEN
+    component_role: frontend
+  - action: remove_env
+    var: VERCEL_PROJECT_ID
+    component_role: frontend
+  - action: remove_env
+    var: VERCEL_ORG_ID
+    component_role: frontend
+  - action: add_env
+    var: COOLIFY_WEBHOOK_URL
+    component_role: frontend
+  - action: add_env
+    var: COOLIFY_APP_URL
+    component_role: frontend

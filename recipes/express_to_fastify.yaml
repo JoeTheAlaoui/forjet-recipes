@@ -1,0 +1,39 @@
+id: express-to-fastify
+name: Express.js to Fastify Migration
+description: >
+  Migrates an Express.js server to Fastify. Rewrites route handlers from
+  app.get/post/put/delete to fastify equivalents, converts app.use() middleware
+  to fastify.register() plugins, adapts error handlers, and swaps package.json
+  dependencies. Activates when the bundle includes a backend repo and the
+  caller requests server=fastify.
+
+trigger:
+  required_roles:
+    - backend
+  overrides:
+    server: fastify
+
+transformations:
+  - target_file: src/server.ts
+    engine: jscodeshift
+    codemod: express_to_fastify_routes
+  - target_file: src/app.ts
+    engine: jscodeshift
+    codemod: express_to_fastify_routes
+  - target_file: src/middleware/index.ts
+    engine: jscodeshift
+    codemod: express_middleware_to_fastify_plugin
+  - target_file: src/errors/handler.ts
+    engine: jscodeshift
+    codemod: express_error_handler_to_fastify
+  - target_file: package.json
+    engine: jscodeshift
+    codemod: swap_package_dep
+
+contract_mutations:
+  - action: remove_env
+    var: EXPRESS_PORT
+    component_role: backend
+  - action: add_env
+    var: FASTIFY_PORT
+    component_role: backend

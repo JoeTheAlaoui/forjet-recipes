@@ -1,0 +1,25 @@
+id: prisma-to-drizzle
+name: Prisma to Drizzle ORM Swap
+description: >
+  Replaces PrismaClient with the Drizzle ORM builder pattern in TypeScript
+  backend repositories. Activates when the bundle includes a backend repo
+  and the caller requests orm=drizzle.
+
+trigger:
+  required_roles:
+    - backend
+  overrides:
+    orm: drizzle
+
+transformations:
+  - target_file: src/db.ts
+    engine: jscodeshift
+    codemod: orm_swap
+
+contract_mutations:
+  - action: remove_env
+    var: DATABASE_URL
+    component_role: backend
+  - action: add_env
+    var: DRIZZLE_DATABASE_URL
+    component_role: backend

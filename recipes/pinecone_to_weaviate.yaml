@@ -1,0 +1,33 @@
+id: pinecone-to-weaviate
+name: Pinecone to Weaviate Vector Store Swap
+description: >
+  Replaces the Pinecone class import with WeaviateClient in Python vector-store
+  repositories. Activates when the bundle includes a vector_store repo and the
+  caller requests vector_store=weaviate.
+
+trigger:
+  required_roles:
+    - vector_store
+  overrides:
+    vector_store: weaviate
+
+transformations:
+  - target_file: app.py
+    engine: python_ast
+    from_module: pinecone
+    from_name: Pinecone
+    to_name: WeaviateClient
+
+contract_mutations:
+  - action: remove_env
+    var: PINECONE_API_KEY
+    component_role: vector_store
+  - action: add_env
+    var: WEAVIATE_URL
+    component_role: vector_store
+  - action: remove_env
+    var: PINECONE_API_KEY
+    component_role: backend
+  - action: add_env
+    var: WEAVIATE_URL
+    component_role: backend

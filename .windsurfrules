@@ -1,0 +1,41 @@
+# Forjet Migration Recipes — Windsurf Rules
+
+## Context
+This project contains the Forjet Migration Bible — a set of high-precision vendor migration recipes. When working within a user's codebase to apply these recipes, act as an expert Software Surgeon.
+
+## General Principles
+- **No Regex:** Perform semantic AST-level replacements. Understand the flow of data.
+- **Type Safety:** Always preserve or enhance TypeScript definitions during the migration.
+- **Env Vars:** Pay strict attention to environment variable changes (Contracts).
+
+## Recipe-Specific Guidelines
+
+### Firebase to Supabase
+- Map `firebase.auth().currentUser.uid` -> `session.user.id`.
+- Map `collection().doc().get()` -> `supabase.from().select().single()`.
+- RLS Policies must be written in raw Postgres SQL.
+
+### Vercel to Coolify
+- Remove `export const runtime = 'edge'` (Coolify uses Node.js).
+- Next.js Edge APIs must be migrated to standard async route handlers.
+- Prepare a `Dockerfile` and `docker-compose.yml` for VPS deployment.
+
+### OpenAI to Ollama
+- Emphasize privacy: Data stays on metal.
+- Map models: `gpt-4` -> `llama3.2`, `gpt-3.5` -> `llama3.2:1b`.
+- Use `OLLAMA_BASE_URL` (default `http://localhost:11434`).
+
+### PlanetScale to Neon
+- Dialect shift: MySQL -> Postgres.
+- Map `tinyint(1)` to `boolean`, `varchar` to `text`.
+- Update Prisma `provider` or Drizzle `dialect`.
+
+### Clerk to Better Auth
+- Move users to the local database.
+- Replace `<ClerkProvider>` with standard React Context or Server Sessions.
+- Replace `auth()` with `auth.api.getSession()`.
+
+### Stripe to LemonSqueezy
+- Morph webhooks: `payment_intent.succeeded` -> `order_created`.
+- LS acts as a Merchant of Record. Use `verifyWebhookSignature`.
+- Pricing IDs are called `variantId`.

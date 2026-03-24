@@ -1,0 +1,74 @@
+# nextjs-supabase-stripe-starter
+
+id: nextjs-supabase-stripe-starter
+name: "The Indie Hacker's Golden Stack: Next.js + Supabase + Stripe"
+version: "1.0.0"
+description: >
+  Scaffolds a production-ready Next.js SaaS starter with Supabase (auth + postgres),
+  Stripe (payments + subscriptions), and Shadcn UI. Includes:
+  - Supabase Auth with magic links + OAuth (Google, GitHub)
+  - Stripe Checkout with free/pro pricing tiers
+  - Supabase RLS policies pre-configured for multi-tenant SaaS
+  - Shadcn UI components (dashboard, pricing page, auth pages)
+  - TypeScript + Drizzle ORM schema pre-built for users, subscriptions, teams
+  - Middleware-based route protection
+  This replaces the "build the boilerplate from scratch" phase that costs
+  most indie hackers 2-3 weeks before they can write a single feature.
+
+stack:
+  frontend:
+    framework: nextjs
+    ui: shadcn
+    router: app
+  backend:
+    database: supabase
+    orm: drizzle
+    auth: supabase-auth
+  payments: stripe
+  language: typescript
+
+scaffold_structure:
+  - path: src/app/(auth)/sign-in/page.tsx
+    template: supabase_signin_page
+  - path: src/app/(auth)/sign-up/page.tsx
+    template: supabase_signup_page
+  - path: src/app/dashboard/page.tsx
+    template: dashboard_page
+  - path: src/app/pricing/page.tsx
+    template: stripe_pricing_page
+  - path: src/middleware.ts
+    template: supabase_auth_middleware
+  - path: src/db/schema.ts
+    template: supabase_saas_schema
+  - path: src/app/api/webhooks/stripe/route.ts
+    template: stripe_webhook_handler
+  - path: src/lib/supabase.ts
+    template: supabase_client_init
+  - path: drizzle.config.ts
+    template: drizzle_postgres_config
+
+contract_mutations:
+  - action: add_env
+    var: NEXT_PUBLIC_SUPABASE_URL
+    component_role: frontend
+  - action: add_env
+    var: NEXT_PUBLIC_SUPABASE_ANON_KEY
+    component_role: frontend
+  - action: add_env
+    var: SUPABASE_SERVICE_ROLE_KEY
+    component_role: frontend
+  - action: add_env
+    var: STRIPE_SECRET_KEY
+    component_role: frontend
+  - action: add_env
+    var: STRIPE_PUBLISHABLE_KEY
+    component_role: frontend
+  - action: add_env
+    var: STRIPE_WEBHOOK_SECRET
+    component_role: frontend
+  - action: add_env
+    var: STRIPE_PRO_PRICE_ID
+    component_role: frontend
+  - action: add_env
+    var: DATABASE_URL
+    component_role: frontend

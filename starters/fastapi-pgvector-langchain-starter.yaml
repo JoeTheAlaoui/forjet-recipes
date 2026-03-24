@@ -1,0 +1,61 @@
+# fastapi-pgvector-langchain-starter
+
+id: fastapi-pgvector-langchain-starter
+name: "The AI Backend Stack: FastAPI + pgvector + LangChain"
+version: "1.0.0"
+description: >
+  Scaffolds a production-ready Python AI backend with FastAPI, pgvector (vector 
+  search in Postgres), and LangChain. The self-hosted AI stack that doesn't 
+  send your documents to a third-party vector SaaS.
+  Includes:
+  - FastAPI with async endpoints and Pydantic v2 models
+  - pgvector extension pre-configured in Postgres (via Neon or local)
+  - LangChain document ingestion pipeline (chunking, embedding, storage)
+  - OpenAI or Ollama embedding support (configurable via env)
+  - RAG (Retrieval-Augmented Generation) endpoint pre-built
+  - Docker Compose for local development (FastAPI + Postgres + Ollama)
+  - Alembic migrations pre-configured for the vector schema
+
+stack:
+  backend:
+    framework: fastapi
+    language: python
+    database: postgres
+    extension: pgvector
+    ai: langchain
+    llm_provider: openai  # swappable to ollama via openai-to-ollama recipe
+  infrastructure: docker-compose
+
+scaffold_structure:
+  - path: main.py
+    template: fastapi_main
+  - path: app/api/routes/ingest.py
+    template: langchain_ingest_route
+  - path: app/api/routes/search.py
+    template: pgvector_search_route
+  - path: app/api/routes/chat.py
+    template: rag_chat_route
+  - path: app/core/embeddings.py
+    template: openai_embeddings_client
+  - path: app/core/vector_store.py
+    template: pgvector_store
+  - path: app/models/document.py
+    template: pydantic_document_model
+  - path: alembic/versions/001_add_vector_extension.py
+    template: pgvector_migration
+  - path: docker-compose.yml
+    template: fastapi_postgres_dev_compose
+
+contract_mutations:
+  - action: add_env
+    var: DATABASE_URL
+    component_role: backend
+  - action: add_env
+    var: OPENAI_API_KEY
+    component_role: backend
+  - action: add_env
+    var: EMBEDDING_MODEL
+    component_role: backend
+  - action: add_env
+    var: VECTOR_DIMENSIONS
+    component_role: backend

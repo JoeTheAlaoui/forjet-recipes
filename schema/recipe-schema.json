@@ -1,0 +1,117 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/forjet/forjet-recipes/schema/recipe-schema.json",
+  "title": "Forjet Recipe",
+  "description": "Schema for a Forjet migration recipe file (.yaml or .json).",
+  "type": "object",
+  "required": ["id", "name", "trigger", "transformations"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Machine-readable slug, e.g. 'prisma-to-drizzle'.",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+    },
+    "name": {
+      "type": "string",
+      "description": "Human-readable label for the recipe."
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional explanation of what this recipe does.",
+      "default": ""
+    },
+    "version": {
+      "type": "string",
+      "description": "Semantic version of the recipe, e.g. '1.0.0'.",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "default": "1.0.0"
+    },
+    "trigger": {
+      "type": "object",
+      "description": "Conditions that must ALL be satisfied for the recipe to activate.",
+      "required": ["required_roles"],
+      "additionalProperties": false,
+      "properties": {
+        "required_roles": {
+          "type": "array",
+          "description": "Every role listed here must be present in the bundle.",
+          "items": { "type": "string" },
+          "minItems": 1
+        },
+        "overrides": {
+          "type": "object",
+          "description": "Every key/value pair must match the caller's override dict.",
+          "additionalProperties": { "type": "string" },
+          "default": {}
+        }
+      }
+    },
+    "transformations": {
+      "type": "array",
+      "description": "Ordered list of file-level transformation steps.",
+      "items": {
+        "type": "object",
+        "required": ["target_file", "engine"],
+        "additionalProperties": false,
+        "properties": {
+          "role": {
+            "type": "string",
+            "description": "The repo role whose file we target. Defaults to trigger.required_roles[0] when omitted."
+          },
+          "target_file": {
+            "type": "string",
+            "description": "Relative path inside the repo, e.g. 'src/db.ts'."
+          },
+          "engine": {
+            "type": "string",
+            "description": "Transformation engine to use.",
+            "enum": ["jscodeshift", "python_ast"]
+          },
+          "codemod": {
+            "type": "string",
+            "description": "Name of the .js codemod in codemods/ (jscodeshift engine only)."
+          },
+          "from_module": {
+            "type": "string",
+            "description": "Source module to rewrite from (python_ast engine only)."
+          },
+          "from_name": {
+            "type": "string",
+            "description": "Symbol name to replace (python_ast engine only)."
+          },
+          "to_name": {
+            "type": "string",
+            "description": "Replacement symbol name (python_ast engine only)."
+          }
+        }
+      },
+      "minItems": 1
+    },
+    "contract_mutations": {
+      "type": "array",
+      "description": "Env-var additions/removals to apply to the IntegrationContract.",
+      "items": {
+        "type": "object",
+        "required": ["action", "var", "component_role"],
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": ["add_env", "remove_env"],
+            "description": "Whether to add or remove the environment variable."
+          },
+          "var": {
+            "type": "string",
+            "description": "The environment variable name."
+          },
+          "component_role": {
+            "type": "string",
+            "description": "Which component (by role) to mutate."
+          }
+        }
+      },
+      "default": []
+    }
+  }
+}

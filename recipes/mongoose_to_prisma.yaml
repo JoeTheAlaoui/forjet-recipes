@@ -1,0 +1,35 @@
+id: mongoose-to-prisma
+name: Mongoose to Prisma ORM Migration
+description: >
+  Migrates a Node.js backend from Mongoose ODM to Prisma ORM. Converts Mongoose
+  schema definitions to a Prisma schema file, rewrites query methods
+  (Model.find → prisma.model.findMany, Model.findById → prisma.model.findUnique,
+  Model.create → prisma.model.create, Model.findByIdAndUpdate → prisma.model.update,
+  Model.findByIdAndDelete → prisma.model.delete), and replaces the mongoose
+  connection setup with a PrismaClient singleton. Activates when the bundle
+  includes a backend repo and the caller requests odm=prisma.
+
+trigger:
+  required_roles:
+    - backend
+  overrides:
+    odm: prisma
+
+transformations:
+  - target_file: src/db.ts
+    engine: jscodeshift
+    codemod: mongoose_connection_to_prisma
+  - target_file: src/models/index.ts
+    engine: jscodeshift
+    codemod: mongoose_models_to_prisma_client
+  - target_file: src/repositories/index.ts
+    engine: jscodeshift
+    codemod: mongoose_queries_to_prisma
+
+contract_mutations:
+  - action: remove_env
+    var: MONGODB_URI
+    component_role: backend
+  - action: add_env
+    var: DATABASE_URL
+    component_role: backend

@@ -1,0 +1,48 @@
+id: firebase-to-supabase
+name: Firebase to Supabase Migration
+description: >
+  Migrates a project from Firebase to Supabase. Replaces firebase.auth() calls
+  with supabase.auth equivalents, rewrites Firestore collection/document queries
+  to supabase.from().select()/insert()/update()/delete() calls, and swaps
+  Firebase Storage references to Supabase Storage. Activates when the bundle
+  includes a backend or frontend repo and the caller requests backend=supabase.
+
+trigger:
+  required_roles:
+    - backend
+  overrides:
+    backend: supabase
+
+transformations:
+  - target_file: src/lib/auth.ts
+    engine: jscodeshift
+    codemod: firebase_auth_to_supabase
+  - target_file: src/lib/db.ts
+    engine: jscodeshift
+    codemod: firestore_to_supabase_client
+  - target_file: src/lib/storage.ts
+    engine: jscodeshift
+    codemod: firebase_storage_to_supabase
+  - target_file: src/firebase.ts
+    engine: jscodeshift
+    codemod: firebase_init_to_supabase_init
+
+contract_mutations:
+  - action: remove_env
+    var: FIREBASE_API_KEY
+    component_role: backend
+  - action: remove_env
+    var: FIREBASE_PROJECT_ID
+    component_role: backend
+  - action: remove_env
+    var: FIREBASE_STORAGE_BUCKET
+    component_role: backend
+  - action: add_env
+    var: SUPABASE_URL
+    component_role: backend
+  - action: add_env
+    var: SUPABASE_ANON_KEY
+    component_role: backend
+  - action: add_env
+    var: SUPABASE_SERVICE_ROLE_KEY
+    component_role: backend
